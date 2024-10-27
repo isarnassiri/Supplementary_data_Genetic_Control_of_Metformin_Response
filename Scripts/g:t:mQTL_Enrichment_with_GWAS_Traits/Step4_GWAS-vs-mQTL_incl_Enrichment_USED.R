@@ -1,0 +1,292 @@
+# install.packages("remotes")
+# remotes::install_github("MRCIEU/TwoSampleMR")
+# remotes::install_github("MRCIEU/MRInstruments")
+# remotes::install_github("izhbannikov/haplor")
+#------------------------ backend data
+library(TwoSampleMR)
+library(MRInstruments)
+library(haploR)
+
+# List available GWASs
+ao <- available_outcomes()
+ao = ao[!is.na(ao$ncase),]
+dim(ao)
+
+setwd('D:/Analysis_FairfaxLab/New_Analysis_eQTL_Monocyte/')
+write.table(ao, 'List_of_10141_GWASsummaryStat.txt', quote = F, row.names = F, sep = '\t')
+
+# List of available DBs
+DBs = as.data.frame(table(gsub('-.*','',ao$id)))
+
+UKBIO = ao[grep('ukb', ao$id),]
+UKBIOtrait = as.data.frame(table(UKBIO$trait))
+UKBIO=UKBIO[grep('covid|COVID|Cancer|cancer|immun|Immun|inflammat|Inflammat', UKBIO$trait),]
+UKBIO=UKBIO[-grep('non|Non|Illnesses of', UKBIO$trait),]
+UKBIO <- UKBIO[grepl("European", UKBIO$population), ]
+dim(UKBIO)
+
+BBJ = ao[grep('bbj', ao$id),]
+BBJtrait = as.data.frame(table(BBJ$trait))
+BBJ <- BBJ[grepl("European", BBJ$population), ]   #mainly East Asian
+dim(BBJ)
+
+EBI = ao[grep('ebi', ao$id),]
+EBItrait = as.data.frame(table(EBI$trait))
+EBI <- EBI[grepl("European", EBI$population), ]
+dim(EBI)
+
+ieu = ao[grep('ieu', ao$id),]
+ieutrait = as.data.frame(table(ieu$trait))
+ieu <- ieu[grepl("European", ieu$population), ]
+dim(ieu)
+
+#The terms seems redundant and ambiguous
+# FINN = ao[grep('finn', ao$id),]
+# FINNtrait = as.data.frame(table(FINN$trait))
+# FINN=FINN[grep('covid|COVID|Cancer|cancer|immun|Immun|inflammat|Inflammat', FINN$trait),]
+# FINN <- FINN[grepl("European", FINN$population), ]
+# dim(FINN)
+
+table(ao$subcategory)  # Includes Psychiatric / neurological
+toMatch <- c("Autoimmune / inflammatory",
+             'Cofactors and vitamins',
+             "Haemotological", "Cancer",
+             "Immune system", "Immune cell subset frequency", "Metabolites ratio", "Nucleotide","Paediatric disease")
+subcategories <- ao[grepl(paste(toMatch,collapse="|"), ao$subcategory),]
+subcategories <- subcategories[grepl("European", subcategories$population), ]
+dim(subcategories)
+
+allDBs = do.call("rbind", list(subcategories, UKBIO, BBJ, EBI, ieu))
+table(duplicated(allDBs$id))
+allDBs = allDBs[!duplicated(allDBs$id),]
+
+allDBs = allDBs[-grep('Illnesses of|self-reported|Self-reported|Non-cancer|non-cancer|noninflammatory|Noninflammatory', UKBIO$trait),]
+dim(allDBs)
+
+table(allDBs$consortium)
+
+#--------------------------- query
+treatment = 'LPS24'
+if(treatment == 'IFN'){query_nCases = 139} else if (treatment == 'LPS24') {query_nCases = 176 } else {query_nCases = 176 }
+
+library(data.table)
+library(coloc) 
+library(qvalue)
+#============================== read mQTLs
+
+SNPs = fread('D:/Analysis_FairfaxLab/New_Analysis_eQTL_Monocyte/gQTL/QTLtools_inputs/MAF_imputed_Allsamples_TYPED.txt', stringsAsFactors = F, header = T, fill=TRUE)
+SNPs = as.data.frame(SNPs)
+SNPs = SNPs[,c('ID', 'REF', 'ALT', '0', '1', '2', 'mac', 'maf', 'TYPED')]
+colnames(SNPs)[which(colnames(SNPs) %in% 'ID')] = 'var_id'
+SNPs = SNPs[order(SNPs$maf, decreasing = T),]
+SNPs = SNPs[!duplicated(SNPs$var_id),]
+table(duplicated(SNPs$var_id))
+head(SNPs)
+
+headerP = fread('D:/Analysis_FairfaxLab/New_Analysis_eQTL_Monocyte/mQTL/gQTL_permutation_Header.txt', stringsAsFactors = F, header = F)
+
+setwd('D:/Analysis_FairfaxLab/New_Analysis_eQTL_Monocyte/mQTL/')
+
+Methylation_permutation_LPS24 = fread('QTLtools_outputs/LPS24/permutation_pass/mQTL_permutation_pass_1.txt', stringsAsFactors = F)
+colnames(Methylation_permutation_LPS24) = as.character(headerP)
+Methylation_permutation_LPS24 = Methylation_permutation_LPS24[-which(Methylation_permutation_LPS24$var_id == '.'),]
+
+# bwd_pval: The nominal backward p-value of the association between the most significant variant and the phenotype.
+Methylation_permutation_LPS24$FDR <- qvalue(p = Methylation_permutation_LPS24$adj_beta_pval)$qvalues
+Methylation_permutation_LPS24_sub = Methylation_permutation_LPS24[Methylation_permutation_LPS24$FDR < 0.01,]
+length(unique(Methylation_permutation_LPS24_sub$phe_id))
+
+table(Methylation_permutation_LPS24_sub$bwd_best_hit)
+
+Methylation_permutation_UT = fread('QTLtools_outputs/UT/permutation_pass/mQTL_permutation_pass_1.txt', stringsAsFactors = F)
+colnames(Methylation_permutation_UT) = as.character(headerP)
+Methylation_permutation_UT = Methylation_permutation_UT[-which(Methylation_permutation_UT$var_id == '.'),]
+
+# bwd_pval: The nominal backward p-value of the association between the most significant variant and the phenotype.
+Methylation_permutation_UT$FDR <- qvalue(p = Methylation_permutation_UT$adj_beta_pval)$qvalues
+Methylation_permutation_UT_sub = Methylation_permutation_UT[Methylation_permutation_UT$FDR < 0.01,]
+length(unique(Methylation_permutation_UT_sub$phe_id))
+dim(Methylation_permutation_UT_sub)
+
+#--- CS mQTLs
+mQTLs <- list(UT = Methylation_permutation_UT_sub$phe_id,
+              LPS24 = Methylation_permutation_LPS24_sub$phe_id)
+setdiffmQTLs = lapply(1:length(mQTLs), function(n) setdiff(mQTLs[[n]], unlist(mQTLs[-n])))
+names(setdiffmQTLs) = c('UT', 'LPS24')
+
+length(setdiffmQTLs[['LPS24']])
+length(setdiffmQTLs[['UT']])
+
+dim(Methylation_permutation_UT_sub)
+dim(Methylation_permutation_LPS24_sub)
+
+LPS24 = Methylation_permutation_LPS24_sub[which(Methylation_permutation_LPS24_sub$phe_id %in% c(setdiffmQTLs[['LPS24']] )),]
+UT = Methylation_permutation_UT_sub[which(Methylation_permutation_UT_sub$phe_id %in% c(setdiffmQTLs[['UT']] )),]
+
+dim(LPS24)
+dim(UT)
+
+#------ per state
+
+Query = get(treatment)
+Query = as.data.frame(Query)
+
+library(dplyr)
+Query = merge(Query, SNPs, by = 'var_id')
+Query = Query[order(Query$FDR, decreasing = F),]
+Query = Query[!duplicated(Query$var_id),]
+
+#-- If you donot use the LD peak SNPs
+#-- the old version of the clumping function was removing some chromosomes
+
+# library(ieugwasr) #R/3.5.0-newgcc
+# clump_input = cbind.data.frame(rsid = Query$SNP_ID, chr_name = Query$SNP_CHROM, chrom_start = Query$SNP_POS, pval = Query$FDR)
+# i <- sapply(clump_input, is.factor)
+# clump_input[i] <- lapply(clump_input[i], as.character)
+# str(clump_input)
+# clumped_input <- ld_clump(clump_input)
+
+# Query = Query[which(Query$SNP_ID %in% clumped_input$rsid),]
+
+# INPUT = QUERY
+INPUT = cbind.data.frame(SNP = Query$var_id,
+                         beta.exposure = Query$slope,
+                         se.exposure = Query$slope_se,
+                         effect_allele.exposure = Query$REF,
+                         other_allele.exposure = Query$ALT,
+                         eaf.exposure = Query$maf,
+                         pval.exposure = Query$FDR,
+                         gene.exposure = Query$phe_id)
+
+INPUT = cbind.data.frame(INPUT, rep('mQTL', dim(INPUT)[1]), rep('mQTL', dim(INPUT)[1]))
+colnames(INPUT) = c('SNP','beta.exposure','se.exposure','effect_allele.exposure','other_allele.exposure','eaf.exposure','pval.exposure','gene.exposure','exposure','id.exposure')
+
+i <- sapply(INPUT, is.factor)
+INPUT[i] <- lapply(INPUT[i], as.character)
+
+str(INPUT)
+dim(INPUT)
+
+dir.create(paste0('ciseQTL_trait_enrichment/CSmQTL_trait_colocalization_',treatment,'/mr'), recursive = T)
+setwd(paste0('ciseQTL_trait_enrichment/CSmQTL_trait_colocalization_',treatment,'/'))
+
+getwd()
+ok=ok2=0
+RESULTS = data.frame()
+
+library(biomaRt)
+snpdetail=useMart("ENSEMBL_MART_SNP", dataset="hsapiens_snp",host="grch37.ensembl.org", path="/biomart/martservice",archive=FALSE)
+i=1
+
+for(i in 1:length(allDBs$id))
+{
+  input_enrichment = chd_out_dat = NULL
+  
+  tryCatch({
+    
+    chd_out_dat <- extract_outcome_data(
+      snps = INPUT$SNP,
+      outcomes = allDBs$id[i]
+    )
+    
+  }, error=function(e){})
+  
+  if(!is.null(chd_out_dat))
+  {
+    input_enrichment <- harmonise_data(
+      exposure_dat = INPUT,
+      outcome_dat = chd_out_dat
+    )
+    # colnames(INPUT)
+    # chd_out_dat[,grep('proxy', colnames(chd_out_dat))]#[c(1:3,7:10,12,16)]
+    
+    input_enrichment = input_enrichment[which(input_enrichment$pval.outcome<1e-5),] # - report 1e-6 because 1e-5 < 7.03493e-06 
+
+    #-------------- coloc
+    if(dim(input_enrichment)[1]>0)
+    {
+      
+      proxies = input_enrichment#[which(input_enrichment$proxy.outcome),]
+      proxies$SNP = as.character(proxies$SNP)
+      
+      proxies$target_snp.outcome[is.na(proxies$target_snp.outcome)] = proxies$SNP[is.na(proxies$target_snp.outcome)]
+      proxies$proxy_snp.outcome[is.na(proxies$proxy_snp.outcome)] = proxies$SNP[is.na(proxies$proxy_snp.outcome)]
+      
+      #----- coloc per SNP
+      
+      library(coloc)
+      j=1
+      for(j in 1:(dim(proxies)[1]))
+      {
+        
+        if(is.na(proxies$eaf.outcome[j]))
+        {
+          SNPs_rsID_MAF = getBM(attributes=c('chr_name', 'chrom_start',"minor_allele_freq","refsnp_id"),filters="snp_filter",value=as.character(proxies$SNP[j]), snpdetail)
+          if(dim(SNPs_rsID_MAF)[1]>0){proxies$eaf.outcome[j] = SNPs_rsID_MAF$minor_allele_freq}
+        }
+        
+        if(is.na(proxies$eaf.exposure[j]))
+        {
+          SNPs_rsID_MAF = getBM(attributes=c('chr_name', 'chrom_start',"minor_allele_freq","refsnp_id"),filters="snp_filter",value=as.character(proxies$SNP[j]), snpdetail)
+          if(dim(SNPs_rsID_MAF)[1]>0){proxies$eaf.outcome[j] = SNPs_rsID_MAF$minor_allele_freq}
+        }
+        
+        tryCatch({
+          
+          COLOC_Per_SNP=NULL
+          COLOC_Per_SNP <- coloc.abf(list(snp = proxies$SNP[j], pvalues=as.numeric(proxies$pval.exposure[j]), N=query_nCases, MAF=as.numeric(proxies$eaf.exposure[j]), type="quant"),
+                                     list(snp = proxies$SNP[j], pvalues=as.numeric(proxies$pval.outcome[j]), N=proxies$samplesize.outcome[j], MAF=as.numeric(proxies$eaf.outcome[j]), type="quant"))
+          
+        }, error=function(e){})
+        
+        if(!is.null(COLOC_Per_SNP))
+        {
+          
+          if(COLOC_Per_SNP$summary['PP.H4.abf']<0.5){print('1k'); input_enrichment = input_enrichment[-which(input_enrichment$proxy_snp.outcome == proxies$proxy_snp.outcome[j]),]}else{print('0k')}
+          
+          res = data.frame(proxies[j,], PP.H4.abf = as.numeric(COLOC_Per_SNP$summary['PP.H4.abf']))
+          res = res[,which(colnames(res)%in%c('SNP','beta.exposure','beta.outcome','eaf.exposure','eaf.outcome','id.outcome', 'chr','pos','se.outcome','pval.outcome','outcome','originalname.outcome','target_snp.outcome','proxy_snp.outcome','pval.exposure', 'PP.H4.abf'))]
+          
+          print(paste0('dim(res): ', dim(res)[2] ))
+          
+          if(dim(res)[2]==16)
+          {
+            if(i==1 & ok == 0){RESULTS = res; ok=1}
+            if(i!=1 & ok == 0){RESULTS = res; ok=1}
+            if(i!=1 & ok == 1){RESULTS=rbind(res,RESULTS)}
+          }
+          
+          print(paste0('dim(RESULTS): ', dim(RESULTS) ))
+          
+        }
+        #print(RESULTS)
+      }
+    }
+
+  #-------------- Mendelian randomization test
+  if(dim(input_enrichment)[1]>0)
+  {
+    # remove duplicate summaries by selecting most informative one
+    # input_enrichment<-power.prune(input_enrichment, method.size=F)
+    
+    # enrichment
+    res2 <- mr(input_enrichment)
+    
+    if(i==1 & ok2 == 0){RESULTS2 = res2; ok2=1}
+    if(i!=1 & ok2 == 0){RESULTS2 = res2; ok2=1}
+    if(i!=1 & ok2 == 1){RESULTS2=rbind(res2, RESULTS2)}
+   
+    write.table(res2, paste0('mr/', allDBs$id[i], '_', treatment, '_Enrichment_traits_coloc_MRT.txt'), quote = F, row.names = F, sep = '\t')
+  }
+ }
+}
+
+fwrite(RESULTS2, paste0('CSmQTL_',treatment,'_Enrichment_traits_ALL.txt'), quote = F, row.names = F, sep = '\t')
+fwrite(RESULTS, paste0('CSmQTL_',treatment,'_traits_colocalization.txt'), quote = F, row.names = F, sep = '\t')
+
+length(unique(RESULTS[which(RESULTS$PP.H4.abf > 0.8), 'SNP']))
+length(unique(RESULTS[which(RESULTS$PP.H4.abf > 0.8 & RESULTS$pval.outcome < 1e-8), 'SNP']))
+RESULTS$originalname.outcome[grep('COVID', RESULTS$originalname.outcome)]
+
+
+
