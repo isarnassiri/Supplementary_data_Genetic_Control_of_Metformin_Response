@@ -1,16 +1,32 @@
-# module purge
-# module add R/4.1.0-foss-2021a
-# module add R-bundle-Bioconductor/3.13-foss-2021a-R-4.1.0
 
-.libPaths("/well/parkkinen/users/gbf362/R/4.1/skylake/")
+############################## Code Description ##########################################################################################################
 
+#----------------- Packages that need to be installed -----------------
+library(rtracklayer)
+library(DGCA)
+library(qvalue)
+library(data.table)
+
+#----------------- Description -----------------
+# To find genetic variants that affect gene co-expression patterns (coExQTL), we create gene co-expression networks for every genotype-matched group. 
+# Next, Spearman's rank correlation coefficient (r) is computed for the expression values of eGenes and all other genes among individuals stratified according to genotype. 
+# We use the correlation coefficient as edge weights and assess whether the differences in edge weights between genotype groups are statistically significant.
+
+#----------------- Output -----------------
+# The results of the genetic determinant analysis of gene regulatory network relationships are presented in text files.
+
+#----------------- Examples -----------------
 treatment="UT"
 
-setwd('/well/parkkinen/users/gbf362/Analysis_data/ciseQTL_Monocyte/')
+# It is necessary to call the functions in lines 39-172. To do that, select the lines and hit the Run button/Enter.
+# Execute the rest of the code line by line.
+
+##########################################################################################################################################################
+
+setwd('~')
 dir.create('coExQTL/gQTL_coExQTL/', recursive = T)
 
 #--- gene symbol to Ensemble transcript IDs
-library(rtracklayer)
 gtf_gene <- rtracklayer::import('GENOMEANNOT/GRCh38.gtf')
 gtf_gene <- as.data.frame(gtf_gene)
 
@@ -23,9 +39,6 @@ GTF=GTF[,c("gene_id", "gene_name")]
 GTF=as.data.frame(GTF)
 colnames(GTF) = c('id','symbol')
 
-library(data.table)
-library(dplyr)
-
 expression = fread(paste0('Input_files_gene/expression_',treatment,'.txt'), stringsAsFactors = F)
 expression = as.data.frame(expression)
 row.names(expression) = expression$id
@@ -34,15 +47,9 @@ expression = expression[,-1]
 expression = expression[which(row.names(expression) %in% GTF$id),]
 GTF_subset = GTF[which(GTF$id %in% row.names(expression)),]
 
-dim(GTF_subset)
-dim(expression)
-
 GTF_subset = GTF_subset[match(row.names(expression), GTF_subset$id),]
-identical(GTF_subset$id, row.names(expression))
-
 row.names(expression) = make.names(GTF_subset$symbol,unique=T)
 
-# if you want to read an SNP you should make the file tab separated
 TP_GENOTYPE = fread(paste0('Input_files_Genotype/Monocyte_imputed_matrixQTL_Allsamples_justSNPs_format2.txt'),stringsAsFactors = F)
 TP_GENOTYPE = as.data.frame(TP_GENOTYPE)
 TP_GENOTYPE = TP_GENOTYPE[!duplicated(TP_GENOTYPE$id),]
@@ -51,9 +58,6 @@ TP_GENOTYPE = TP_GENOTYPE[,-1]
 
 expression = expression[,which(colnames(expression) %in% colnames(TP_GENOTYPE))]
 TP_GENOTYPE = TP_GENOTYPE[,which(colnames(TP_GENOTYPE) %in% colnames(expression))]
-
-dim(expression)
-dim(TP_GENOTYPE)
 
 MAF_imputed_Allsamples = fread('MAF_imputed_Allsamples_TYPED.txt', stringsAsFactors = F, header = T)
 MAF_imputed_Allsamples = as.data.frame(MAF_imputed_Allsamples)
@@ -65,31 +69,22 @@ cis = as.data.frame(cis)
 
 colnames(cis) = as.character(headerC)
 cis = cis[-which(cis$var_id == '.'),]
-
-dim(cis)
 cis = merge(cis, MAF_imputed_Allsamples, by = 'var_id')
-dim(cis)
 
 # bwd_pval: The nominal backward p-value of the association between the most significant variant and the phenotype.
-library(qvalue)
 cis$FDR <- qvalue(p = cis$bwd_pval)$qvalues
-range(cis$FDR)
 
 cis = cis[which(cis$FDR < 1e-5),]
 cis = cis[which(cis$maf > 0.039),]
 cis = cis[which(cis$`2` > 5),]
 cis_sub <- cis[!(is.na(cis$phe_id) | cis$phe_id == "" ),]
 cis_sub = cis_sub[order(as.numeric(cis_sub$FDR), decreasing = F),]
-# cis_sub <- cis_sub[!duplicated(cis_sub$s),] 
-
 cis_sub <- cis_sub[which(cis_sub$bwd_best_hit == 1),] 
-dim(cis_sub)
 #--
 
 RESULT = data.frame()
 i=1;
-library(DGCA)
-# 
+
 for(i in 1:dim(cis_sub)[1]) {
   tryCatch({
   
@@ -132,20 +127,12 @@ for(i in 1:dim(cis_sub)[1]) {
   
   ddcor_G2_G1 = ddcor_G2_G1[which(ddcor_G2_G1$Classes != 'NonSig'),]
   ddcor_G2_G0 = ddcor_G2_G0[which(ddcor_G2_G0$Classes != 'NonSig'),]
-  
-  dim(ddcor_G2_G1)
-  dim(ddcor_G2_G0)
-  
+
   if(i==1){RESULT = rbind(ddcor_G2_G0, ddcor_G2_G1)}else{RESULT = rbind(RESULT, rbind(ddcor_G2_G0, ddcor_G2_G1))}
   
-  print(unique(RESULT$Gene2))
+  #--- save results
+  write.table(RESULT, paste0('coExQTL/gQTL_coExQTL/', treatment,'_coExQTL_gQTL.txt'), quote = F, row.names = F, sep = '\t')
   
-  # if(dim(RESULT)[1] != 0 )
-  # {
-    #--- save results
-    write.table(RESULT, paste0('coExQTL/gQTL_coExQTL/', treatment,'_coExQTL_gQTL.txt'), quote = F, row.names = F, sep = '\t')
-  # } 
-
   print(i)
   print(dim(RESULT))
   

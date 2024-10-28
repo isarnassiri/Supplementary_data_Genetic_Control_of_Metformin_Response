@@ -18,10 +18,8 @@ suppressPackageStartupMessages(library(sna))
 suppressPackageStartupMessages(library(ggnetwork))
 
 #----------------- Description -----------------
-# A coExQTL's functional impact would be vary depending on the specific context and the biological significance of the gene within the pathway. 
-# We used a pathway-based differential co-expression analysis to determine the permissible range of expression variation within a pathway that would classify a coExQTL as functionally disruptive. 
-# Pathway-based differential co-expression analysis was performed on a subset of genes that have allele-specific co-expression relationships and enriched with curated gene sets from online pathway databases (FDR < 0.01). 
-# The analysis uncovers the average shift in correlation between gene expression among two genotype classes, as well as its statistical significance.
+# We used co-localisation tests of two genetic traits (coloc) with default parameter to assess whether g/tQTL and mQTL association signals are consistent with a shared causal variant. 
+# To identify causal relationships in the region of interest, we utilized the PPH4 > 0.8, and the Steiger statistical test to analyse the deviation from independence between the direction of causal effects (p < 0.05).
 
 #----------------- Output -----------------
 # Results of pathway enrichment analysis and Pathway-based differential co-expression analysis as text files.
