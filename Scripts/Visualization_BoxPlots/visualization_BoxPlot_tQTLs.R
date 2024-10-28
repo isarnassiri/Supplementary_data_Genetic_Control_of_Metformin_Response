@@ -1,17 +1,46 @@
+
+############################## Code Description ##########################################################################################################
+
+#----------------- Packages that need to be installed -----------------
 library(dplyr)
-library( ggpubr)
+library(ggpubr)
 library(data.table)
+library(biomaRt) 
+library(ggplot2)
+library(grid)
 
+#----------------- Description -----------------
+# Each box indicates a particular SNP allele, and the y-axis displays the expression levels of individuals with that allele. 
+# The Fragments Per Kilobase Million (FPKM) metrix displays the expression levels of transcripts. 
+# The 25th and 75th percentiles are represented in the box on the bottom and top. The box has a line that indicates the median of expression. 
+# The whiskers cover both the minimum and maximum values, with the exception of outliers.
+
+#----------------- Output -----------------
+# An image file in pdf format
+
+#----------------- Examples -----------------
+treatment='LPS24'
+input1 = data.frame(SNP_ID='rs2760527',gene_name='RGS1',gene_id='ENST00000367459', stringsAsFactors = F)
+input = get('input1')
+visualization()
+## Note: You need to run the visualization() function first (Select lines 111-448 and hit the Run button/Enter).
+
+##########################################################################################################################################################
+
+
+#--- To allow comparison with the output of the regression model the optimal number of P.C. used to regress out expression changes attributable to the effect of the non-genetic covariates. 
+PC = TRUE;
 REMOVE_OUTLIERS = TRUE
-PC = TRUE
+incorporate.PC = data.frame(IFN=22,LPS24=29,UT=30)
+#---
 
-SNPs = fread('/Users/isarnassiri/Documents//RESULTS_USED/Genotype/MAF_imputed_Allsamples_revised.txt', stringsAsFactors = F)
+SNPs = fread('~/Genotype/MAF_imputed_Allsamples_revised.txt', stringsAsFactors = F)
 colnames(SNPs)[3] = 'SNP_ID'
 
 incorporate.PC = data.frame(IFN=6,LPS24=5,UT=7)
 
 # destination folder of plots
-folder = paste0('/Users/isarnassiri/Documents/Analysis_FairfaxLab/cis-eQTL-Monocyte-Revisions/Figures_coExQTL/BoxPlots/tQTL_BoxPlots/')  
+folder = paste0('~/tQTL_BoxPlots/')  
 
 if(!dir.exists(folder))
 {
@@ -21,11 +50,11 @@ if(!dir.exists(folder))
 #---------- single input
 
 #-- nominal
-ifn = fread('/Users/isarnassiri/Documents/Analysis_FairfaxLab/New_Analysis_eQTL_Monocyte/tQTL/QTLtools_outputs-100kb-window/IFN/nominal_pass/tQTL_nominal_pass_1.txt', stringsAsFactors = F)
-lps = fread('/Users/isarnassiri/Documents/Analysis_FairfaxLab/New_Analysis_eQTL_Monocyte/tQTL/QTLtools_outputs-100kb-window/LPS24/nominal_pass/tQTL_nominal_pass_1.txt', stringsAsFactors = F)
-ut = fread('/Users/isarnassiri/Documents/Analysis_FairfaxLab/New_Analysis_eQTL_Monocyte/tQTL/QTLtools_outputs-100kb-window/UT/nominal_pass/tQTL_nominal_pass_1.txt', stringsAsFactors = F)
+ifn = fread('~/IFN/nominal_pass/tQTL_nominal_pass_1.txt', stringsAsFactors = F)
+lps = fread('~/LPS24/nominal_pass/tQTL_nominal_pass_1.txt', stringsAsFactors = F)
+ut = fread('~/UT/nominal_pass/tQTL_nominal_pass_1.txt', stringsAsFactors = F)
 
-header_nominal = fread('/Users/isarnassiri/Documents/Analysis_FairfaxLab/New_Analysis_eQTL_Monocyte/tQTL/header_nominal_tQTL.txt', stringsAsFactors = F)
+header_nominal = fread('~/tQTL/header_nominal_tQTL.txt', stringsAsFactors = F)
 colnames(ifn) = colnames(header_nominal)
 colnames(lps) = colnames(header_nominal)
 colnames(ut) = colnames(header_nominal)
@@ -35,29 +64,13 @@ ifn$FDR <- qvalue(ifn$nom_pval)$qvalues
 lps$FDR <- qvalue(lps$nom_pval)$qvalues
 ut$FDR <- qvalue(ut$nom_pval)$qvalues
 
-treatment='LPS24' 
-
-input1 = data.frame(SNP_ID='rs2760527',gene_name='RGS1',gene_id='ENST00000367459', stringsAsFactors = F)
-input2 = data.frame(SNP_ID='rs807612',gene_name='DDX1',gene_id='ENST00000233084', stringsAsFactors = F)
-input3 = data.frame(SNP_ID='rs93075',gene_name='SEPTIN9',gene_id='ENST00000423034', stringsAsFactors = F)
-input4 = data.frame(SNP_ID='rs414340',gene_name='SEPTIN9',gene_id='ENST00000589250', stringsAsFactors = F)
-input5 = data.frame(SNP_ID='rs2386849',gene_name='CTSC',gene_id='ENST00000227266', stringsAsFactors = F)
-input6 = data.frame(SNP_ID='rs2439510',gene_name='SDC2',gene_id='ENST00000523877', stringsAsFactors = F)
-input7 = data.frame(SNP_ID='rs2967172',gene_name='KIFC3',gene_id='ENST00000564204', stringsAsFactors = F)
-input8 = data.frame(SNP_ID='rs2305789',gene_name='EIF3G',gene_id='ENST00000253108', stringsAsFactors = F)
-input9 = data.frame(SNP_ID='rs835044',gene_name='NDUFA12',gene_id='ENST00000327772', stringsAsFactors = F)
-input10 = data.frame(SNP_ID='rs835044',gene_name='NDUFA12',gene_id='ENST00000551991', stringsAsFactors = F)
-input11 = data.frame(SNP_ID='rs2428486',gene_name='MICA',gene_id='ENST00000449934', stringsAsFactors = F)
-input12 = data.frame(SNP_ID='rs2428486',gene_name='MICA',gene_id='ENST00000616296', stringsAsFactors = F)
-input13 = data.frame(SNP_ID='rs9277533',gene_name='HLA-DPB1',gene_id='ENST00000471184', stringsAsFactors = F)
-input14 = data.frame(SNP_ID='rs9277533',gene_name='HLA-DPA1',gene_id='ENST00000416804', stringsAsFactors = F)
-input15 = data.frame(SNP_ID='rs4072037',gene_name='MUC1',gene_id='ENST00000612778', stringsAsFactors = F)
-input16 = data.frame(SNP_ID='rs4072037',gene_name='MUC1',gene_id='ENST00000620103', stringsAsFactors = F)
-input17 = data.frame(SNP_ID='rs10735079',gene_name='OAS1',gene_id='ENST00000202917', stringsAsFactors = F)
-input18 = data.frame(SNP_ID='rs10735079',gene_name='OAS1',gene_id='ENST00000452357', stringsAsFactors = F)
-input19 = data.frame(SNP_ID='rs2243999',gene_name='TRAPPC10',gene_id='ENST00000468864', stringsAsFactors = F)
-input20 = data.frame(SNP_ID='rs61869825',gene_name='USMG5',gene_id='ENST00000337003', stringsAsFactors = F)
-input21 = data.frame(SNP_ID='rs230519',gene_name='NFKB1',gene_id='ENST00000505458', stringsAsFactors = F)
+#--------------------------- query ---------------------------
+# treatment='LPS24' 
+# input1 = data.frame(SNP_ID='rs2760527',gene_name='RGS1',gene_id='ENST00000367459', stringsAsFactors = F)
+# input = get('input1')
+# visualization()
+## Note: You need to run the visualization() function first (Select lines 69-400 and hit the Run button/Enter).
+#---------------------------
 
 if(treatment == 'IFN')
 {
@@ -74,25 +87,10 @@ if(treatment == 'LPS24')
   assign('query', lps)
 }
 
-for(i in 1:21)
-{
-  print(i)
-  input = get(paste0('input', i))
-  
-  slop = round(query$slope[which(query$phe_id == input$gene_id & query$var_id == input$SNP_ID)], digits = 3) 
-  
-  print(input)
-  print(paste0('Slop: ', slop))
-  
-  #visualization()
-}
-
-visualization()
-
 visualization = function()
 {
 #----------
-TP_id = fread(paste0('/Users/isarnassiri/Documents//RESULTS_USED/Expression/Input_files_transcript/expression_',treatment,'.txt'),select='id',stringsAsFactors = F) # includes IFB1
+TP_id = fread(paste0('~/Expression/Input_files_transcript/expression_',treatment,'.txt'),select='id',stringsAsFactors = F) # includes IFB1
 input = input[which(input$gene_id %in% TP_id$id),]
 dim(input)
 
@@ -116,17 +114,17 @@ Allele_0 = paste0(input$REF[t], input$REF[t])
 Allele_1 = paste0(input$REF[t], input$ALT[t])
 Allele_2 = paste0(input$ALT[t], input$ALT[t])
 
-TP_GENOTYPE = fread(paste0('/Users/isarnassiri/Documents//RESULTS_USED/Genotype/Monocyte_imputed_matrixQTL_Allsamples_justSNPs_format2_USED_for_BOXPLOT.txt'),skip = paste0(SNP, '_'), nrows = 1, stringsAsFactors = F)
+TP_GENOTYPE = fread(paste0('~/Genotype/Monocyte_imputed_matrixQTL_Allsamples_justSNPs_format2_USED_for_BOXPLOT.txt'),skip = paste0(SNP, '_'), nrows = 1, stringsAsFactors = F)
 TP_GENOTYPE$V1 = gsub('_', '', TP_GENOTYPE$V1)
 
-GENOTYPE_sample_names = fread(paste0('/Users/isarnassiri/Documents//RESULTS_USED/Genotype/Monocyte_imputed_matrixQTL_Allsamples_justSNPs_format2.txt'),nrows = 1, stringsAsFactors = F)
+GENOTYPE_sample_names = fread(paste0('~/Genotype/Monocyte_imputed_matrixQTL_Allsamples_justSNPs_format2.txt'),nrows = 1, stringsAsFactors = F)
 colnames(TP_GENOTYPE) = colnames(GENOTYPE_sample_names)
 
 #------------------------------------------- UT
 treatment='UT'
 library(data.table)
-TP_EXPESSION = fread(paste0('/Users/isarnassiri/Documents//RESULTS_USED/Expression/Input_files_transcript/expression_',treatment,'.txt'),skip = TRANSCRIPT, nrows = 1,stringsAsFactors = F) # includes IFB1
-EXPESSION_sample_names = fread(paste0('/Users/isarnassiri/Documents//RESULTS_USED/Expression/Input_files_transcript/expression_',treatment,'.txt'),nrows = 1,stringsAsFactors = F) # includes IFB1
+TP_EXPESSION = fread(paste0('~/Expression/Input_files_transcript/expression_',treatment,'.txt'),skip = TRANSCRIPT, nrows = 1,stringsAsFactors = F) # includes IFB1
+EXPESSION_sample_names = fread(paste0('~/Expression/Input_files_transcript/expression_',treatment,'.txt'),nrows = 1,stringsAsFactors = F) # includes IFB1
 colnames(TP_EXPESSION) = colnames(EXPESSION_sample_names)
 
 TP_EXPESSION = TP_EXPESSION[,which(colnames(TP_EXPESSION) %in% colnames(TP_GENOTYPE)),with=F]
@@ -160,7 +158,7 @@ nPC = incorporate.PC[,(colnames(incorporate.PC) == treatment)]
 
 if(t==1 & PC)
 {
-expression.data = fread(paste0('/Users/isarnassiri/Documents//RESULTS_USED/Expression/Input_files_transcript/expression_',treatment,'.txt'),stringsAsFactors = F) # includes IFB1
+expression.data = fread(paste0('~/Expression/Input_files_transcript/expression_',treatment,'.txt'),stringsAsFactors = F) # includes IFB1
 dim(expression.data)
 expression.data = expression.data[,which(colnames(expression.data) %in% colnames(TP_GENOTYPE_treatment)),with=F]
 
@@ -197,8 +195,8 @@ eval(call("<-", as.name(x), INPUT))
 #------------------------------------------- LPS24
 treatment='LPS24'
 library(data.table)
-TP_EXPESSION = fread(paste0('/Users/isarnassiri/Documents//RESULTS_USED/Expression/Input_files_transcript/expression_',treatment,'.txt'),skip = TRANSCRIPT, nrows = 1,stringsAsFactors = F) # includes IFB1
-EXPESSION_sample_names = fread(paste0('/Users/isarnassiri/Documents//RESULTS_USED/Expression/Input_files_transcript/expression_',treatment,'.txt'),nrows = 1,stringsAsFactors = F) # includes IFB1
+TP_EXPESSION = fread(paste0('~/Expression/Input_files_transcript/expression_',treatment,'.txt'),skip = TRANSCRIPT, nrows = 1,stringsAsFactors = F) # includes IFB1
+EXPESSION_sample_names = fread(paste0('~/Expression/Input_files_transcript/expression_',treatment,'.txt'),nrows = 1,stringsAsFactors = F) # includes IFB1
 colnames(TP_EXPESSION) = colnames(EXPESSION_sample_names)
 
 TP_EXPESSION = TP_EXPESSION[,which(colnames(TP_EXPESSION) %in% colnames(TP_GENOTYPE)),with=F]
@@ -234,7 +232,7 @@ nPC = incorporate.PC[,(colnames(incorporate.PC) == treatment)]
 
 if(t==1 & PC)
 {
-  expression.data = fread(paste0('/Users/isarnassiri/Documents//RESULTS_USED/Expression/Input_files_transcript/expression_',treatment,'.txt'),stringsAsFactors = F) # includes IFB1
+  expression.data = fread(paste0('~/Expression/Input_files_transcript/expression_',treatment,'.txt'),stringsAsFactors = F) # includes IFB1
   dim(expression.data)
   expression.data = expression.data[,which(colnames(expression.data) %in% colnames(TP_GENOTYPE_treatment)),with=F]
   
@@ -272,8 +270,8 @@ eval(call("<-", as.name(x), INPUT))
 #------------------------------------------- IFNg
 treatment='IFN'
 library(data.table)
-TP_EXPESSION = fread(paste0('/Users/isarnassiri/Documents//RESULTS_USED/Expression/Input_files_transcript/expression_',treatment,'.txt'),skip = TRANSCRIPT, nrows = 1,stringsAsFactors = F) # includes IFB1
-EXPESSION_sample_names = fread(paste0('/Users/isarnassiri/Documents//RESULTS_USED/Expression/Input_files_transcript/expression_',treatment,'.txt'),nrows = 1,stringsAsFactors = F) # includes IFB1
+TP_EXPESSION = fread(paste0('~/Expression/Input_files_transcript/expression_',treatment,'.txt'),skip = TRANSCRIPT, nrows = 1,stringsAsFactors = F) # includes IFB1
+EXPESSION_sample_names = fread(paste0('~/Expression/Input_files_transcript/expression_',treatment,'.txt'),nrows = 1,stringsAsFactors = F) # includes IFB1
 colnames(TP_EXPESSION) = colnames(EXPESSION_sample_names)
 
 TP_EXPESSION = TP_EXPESSION[,which(colnames(TP_EXPESSION) %in% colnames(TP_GENOTYPE)),with=F]
@@ -307,7 +305,7 @@ nPC = incorporate.PC[,(colnames(incorporate.PC) == treatment)]
 
 if(t==1 & PC)
 {
-  expression.data = fread(paste0('/Users/isarnassiri/Documents//RESULTS_USED/Expression/Input_files_transcript/expression_',treatment,'.txt'),stringsAsFactors = F) # includes IFB1
+  expression.data = fread(paste0('~/Expression/Input_files_transcript/expression_',treatment,'.txt'),stringsAsFactors = F) # includes IFB1
   dim(expression.data)
   expression.data = expression.data[,which(colnames(expression.data) %in% colnames(TP_GENOTYPE_treatment)),with=F]
   

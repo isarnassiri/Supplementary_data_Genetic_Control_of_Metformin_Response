@@ -1,63 +1,71 @@
+
+############################## Code Description ##########################################################################################################
+
+#----------------- Packages that need to be installed -----------------
 library(dplyr)
-library( ggpubr)
+library(ggpubr)
 library(data.table)
+library(biomaRt) 
+library(ggplot2)
+library(grid)
 
-REMOVE_OUTLIERS = TRUE
-PC = TRUE
+#----------------- Description -----------------
+# Each box indicates a particular SNP allele, and the y-axis displays the expression levels of individuals with that allele. 
+# The normalized read count displays the expression levels of genes. 
+# The 25th and 75th percentiles are represented in the box on the bottom and top. The box has a line that indicates the median of expression. 
+# The whiskers cover both the minimum and maximum values, with the exception of outliers.
 
-SNPs = fread('/Users/isarnassiri/Documents//RESULTS_USED/Genotype/MAF_imputed_Allsamples_revised.txt', stringsAsFactors = F)
-colnames(SNPs)[3] = 'SNP_ID'
+#----------------- Output -----------------
+# An image file in pdf format
+
+#----------------- Examples -----------------
+treatment='IFN' 
+input1 = data.frame(SNP_ID='rs4072037',gene_name='MUC1', stringsAsFactors = F)
+input = get('input1')
+visualization()
+
+#- Note: You need to call the visualization() function first (Select lines 69-400 and hit the Run button/Enter).
+
+##########################################################################################################################################################
+
+#--- To allow comparison with the output of the regression model the optimal number of P.C. used to regress out expression changes attributable to the effect of the non-genetic covariates. 
+PC = TRUE;
 
 incorporate.PC = data.frame(IFN=22,LPS24=29,UT=30)
+#---
+
+SNPs = fread('~/MAF_imputed_Allsamples_revised.txt', stringsAsFactors = F)
+colnames(SNPs)[3] = 'SNP_ID'
 
 # destination folder of plots
-folder = paste0('/Users/isarnassiri/Documents/Analysis_FairfaxLab/cis-eQTL-Monocyte-Revisions/Figures_coExQTL/BoxPlots/gQTL_BoxPlots/')  
+folder = paste0('~/gQTL_BoxPlots/')  
 
 if(!dir.exists(folder))
 {
   dir.create(folder, recursive = T)
 }
 
-library(biomaRt)
 ensembl <- useMart("ensembl",dataset="hsapiens_gene_ensembl") #for CBRG: ensembl <- useMart("ENSEMBL_MART_ENSEMBL",dataset="hsapiens_gene_ensembl", host = "jul2015.archive.ensembl.org")
 filters = listFilters(ensembl)
 GTF <- getBM(attributes=c("hgnc_symbol", "ensembl_gene_id"), mart = ensembl)
 
-#---------- single input
-#-- nominal
-ifn = fread('/Users/isarnassiri/Documents/Analysis_FairfaxLab/New_Analysis_eQTL_Monocyte/gQTL/QTLtools_outputs/IFN/nominal_pass/gQTL_nominal_pass_1.txt', stringsAsFactors = F)
-lps = fread('/Users/isarnassiri/Documents/Analysis_FairfaxLab/New_Analysis_eQTL_Monocyte/gQTL/QTLtools_outputs/LPS24/nominal_pass/gQTL_nominal_pass_1.txt', stringsAsFactors = F)
-ut = fread('/Users/isarnassiri/Documents/Analysis_FairfaxLab/New_Analysis_eQTL_Monocyte/gQTL/QTLtools_outputs/UT/nominal_pass/gQTL_nominal_pass_1.txt', stringsAsFactors = F)
+#---------- read in gQTL profiles
+ifn = fread('~/IFN/nominal_pass/gQTL_nominal_pass_1.txt', stringsAsFactors = F)
+lps = fread('~/LPS24/nominal_pass/gQTL_nominal_pass_1.txt', stringsAsFactors = F)
+ut = fread('~/UT/nominal_pass/gQTL_nominal_pass_1.txt', stringsAsFactors = F)
 
-header_nominal = fread('/Users/isarnassiri/Documents/Analysis_FairfaxLab/New_Analysis_eQTL_Monocyte/gQTL/QTLtools_outputs/gQTL_nominal_Header.txt', stringsAsFactors = F)
+header_nominal = fread('~/gQTL_nominal_Header.txt', stringsAsFactors = F)
 colnames(ifn) = colnames(header_nominal)
 colnames(lps) = colnames(header_nominal)
 colnames(ut) = colnames(header_nominal)
 
 #--------------------------- query ---------------------------
-treatment='IFN' 
-
-input1 = data.frame(SNP_ID='rs4072037',gene_name='MUC1', stringsAsFactors = F)
-input2 = data.frame(SNP_ID='rs10735079',gene_name='OAS1', stringsAsFactors = F)
-input3 = data.frame(SNP_ID='rs10735079',gene_name='OAS3', stringsAsFactors = F)
-input4 = data.frame(SNP_ID='rs6517156',gene_name='IFNAR2', stringsAsFactors = F)
-input5 = data.frame(SNP_ID='rs2914937',gene_name='CD55', stringsAsFactors = F)
-input6 = data.frame(SNP_ID='rs6517156',gene_name='IFNAR2', stringsAsFactors = F)
-input7 = data.frame(SNP_ID='rs7305461',gene_name='RPS26', stringsAsFactors = F)
-input8 = data.frame(SNP_ID='rs3110426',gene_name='OXR1', stringsAsFactors = F)
-input9 = data.frame(SNP_ID='rs2910789',gene_name='ERAP2', stringsAsFactors = F)
-input10 = data.frame(SNP_ID='rs6591507',gene_name='DTX4', stringsAsFactors = F)
-input11 = data.frame(SNP_ID='rs61822619',gene_name='DSTYK', stringsAsFactors = F)
-input12 = data.frame(SNP_ID='rs13331559',gene_name='TELO2', stringsAsFactors = F)
-
-for(i in 1:1)
-{
-  print(i)
-  input = get(paste0('input', i))
-  visualization()
-}
-
-visualization()
+# treatment='IFN' 
+# input1 = data.frame(SNP_ID='rs4072037',gene_name='MUC1', stringsAsFactors = F)
+# input = get('input1')
+# visualization()
+## Note: You need to run the visualization() function first (Select lines 69-400 and hit the Run button/Enter).
+#---------------------------
 
 visualization = function()
 {
@@ -65,14 +73,13 @@ visualization = function()
 
 input$gene_id = GTF[which(GTF$hgnc_symbol == input$gene_name), 'ensembl_gene_id']  
   
-TP_id = fread(paste0('/Users/isarnassiri/Documents//RESULTS_USED/Expression/Input_files_gene/expression_',treatment,'.txt'),select='id',stringsAsFactors = F) # includes IFB1
+TP_id = fread(paste0('~/Input_files_gene/expression_',treatment,'.txt'),select='id',stringsAsFactors = F) # includes IFB1
 input = input[which(input$gene_id %in% TP_id$id),]
 dim(input)
 
 #----------
 input = input[order(input$gene_name),]
 
-library(dplyr)
 input = left_join(input, SNPs, by = 'SNP_ID')
 t=1
 
@@ -91,17 +98,17 @@ Allele_1 = paste0(input$REF[t], input$ALT[t])
 Allele_2 = paste0(input$ALT[t], input$ALT[t])
 
 #===== some of the SNP ids are subset of others and the fread retrive the first one (e.g. rs570631764 and rs570631764000); therefore I add _ to the SNP id to distinguish them.
-TP_GENOTYPE = fread(paste0('/Users/isarnassiri/Documents//RESULTS_USED/Genotype/Monocyte_imputed_matrixQTL_Allsamples_justSNPs_format2_USED_for_BOXPLOT.txt'),skip = paste0(SNP, '_'), nrows = 1, stringsAsFactors = F)
+TP_GENOTYPE = fread(paste0('~/Genotype/Monocyte_imputed_matrixQTL_Allsamples_justSNPs_format2_USED_for_BOXPLOT.txt'),skip = paste0(SNP, '_'), nrows = 1, stringsAsFactors = F)
 TP_GENOTYPE$V1 = gsub('_', '', TP_GENOTYPE$V1)
 
-GENOTYPE_sample_names = fread(paste0('/Users/isarnassiri/Documents//RESULTS_USED/Genotype/Monocyte_imputed_matrixQTL_Allsamples_justSNPs_format2.txt'),nrows = 1, stringsAsFactors = F)
+GENOTYPE_sample_names = fread(paste0('~/Genotype/Monocyte_imputed_matrixQTL_Allsamples_justSNPs_format2.txt'),nrows = 1, stringsAsFactors = F)
 colnames(TP_GENOTYPE) = colnames(GENOTYPE_sample_names)
 
 #------------------------------------------- UT
 treatment='UT'
-library(data.table)
-TP_EXPESSION = fread(paste0('/Users/isarnassiri/Documents//RESULTS_USED/Expression/Input_files_gene/expression_',treatment,'.txt'),skip = TRANSCRIPT, nrows = 1,stringsAsFactors = F) # includes IFB1
-EXPESSION_sample_names = fread(paste0('/Users/isarnassiri/Documents//RESULTS_USED/Expression/Input_files_gene/expression_',treatment,'.txt'),nrows = 1,stringsAsFactors = F) # includes IFB1
+ 
+TP_EXPESSION = fread(paste0('~/Input_files_gene/expression_',treatment,'.txt'),skip = TRANSCRIPT, nrows = 1,stringsAsFactors = F) # includes IFB1
+EXPESSION_sample_names = fread(paste0('~/Input_files_gene/expression_',treatment,'.txt'),nrows = 1,stringsAsFactors = F) # includes IFB1
 colnames(TP_EXPESSION) = colnames(EXPESSION_sample_names)
 
 TP_EXPESSION = TP_EXPESSION[,which(colnames(TP_EXPESSION) %in% colnames(TP_GENOTYPE)),with=F]
@@ -135,7 +142,7 @@ nPC = incorporate.PC[,(colnames(incorporate.PC) == treatment)]
 
 if(t==1 & PC)
 {
-expression.data = fread(paste0('/Users/isarnassiri/Documents//RESULTS_USED/Expression/Input_files_gene/expression_',treatment,'.txt'),stringsAsFactors = F) # includes IFB1
+expression.data = fread(paste0('~/Input_files_gene/expression_',treatment,'.txt'),stringsAsFactors = F) # includes IFB1
 dim(expression.data)
 expression.data = expression.data[,which(colnames(expression.data) %in% colnames(TP_GENOTYPE_treatment)),with=F]
 
@@ -175,9 +182,9 @@ eval(call("<-", as.name(x), INPUT))
 
 #------------------------------------------- LPS24
 treatment='LPS24'
-library(data.table)
-TP_EXPESSION = fread(paste0('/Users/isarnassiri/Documents//RESULTS_USED/Expression/Input_files_gene/expression_',treatment,'.txt'),skip = TRANSCRIPT, nrows = 1,stringsAsFactors = F) # includes IFB1
-EXPESSION_sample_names = fread(paste0('/Users/isarnassiri/Documents//RESULTS_USED/Expression/Input_files_gene/expression_',treatment,'.txt'),nrows = 1,stringsAsFactors = F) # includes IFB1
+ 
+TP_EXPESSION = fread(paste0('~/Input_files_gene/expression_',treatment,'.txt'),skip = TRANSCRIPT, nrows = 1,stringsAsFactors = F) # includes IFB1
+EXPESSION_sample_names = fread(paste0('~/Input_files_gene/expression_',treatment,'.txt'),nrows = 1,stringsAsFactors = F) # includes IFB1
 colnames(TP_EXPESSION) = colnames(EXPESSION_sample_names)
 
 TP_EXPESSION = TP_EXPESSION[,which(colnames(TP_EXPESSION) %in% colnames(TP_GENOTYPE)),with=F]
@@ -213,7 +220,7 @@ nPC = incorporate.PC[,(colnames(incorporate.PC) == treatment)]
 
 if(t==1 & PC)
 {
-  expression.data = fread(paste0('/Users/isarnassiri/Documents//RESULTS_USED/Expression/Input_files_gene/expression_',treatment,'.txt'),stringsAsFactors = F) # includes IFB1
+  expression.data = fread(paste0('~/Input_files_gene/expression_',treatment,'.txt'),stringsAsFactors = F) # includes IFB1
   dim(expression.data)
   expression.data = expression.data[,which(colnames(expression.data) %in% colnames(TP_GENOTYPE_treatment)),with=F]
   
@@ -249,9 +256,9 @@ eval(call("<-", as.name(x), INPUT))
 
 #------------------------------------------- IFNg
 treatment='IFN'
-library(data.table)
-TP_EXPESSION = fread(paste0('/Users/isarnassiri/Documents//RESULTS_USED/Expression/Input_files_gene/expression_',treatment,'.txt'),skip = TRANSCRIPT, nrows = 1,stringsAsFactors = F) # includes IFB1
-EXPESSION_sample_names = fread(paste0('/Users/isarnassiri/Documents//RESULTS_USED/Expression/Input_files_gene/expression_',treatment,'.txt'),nrows = 1,stringsAsFactors = F) # includes IFB1
+ 
+TP_EXPESSION = fread(paste0('~/Input_files_gene/expression_',treatment,'.txt'),skip = TRANSCRIPT, nrows = 1,stringsAsFactors = F) # includes IFB1
+EXPESSION_sample_names = fread(paste0('~/Input_files_gene/expression_',treatment,'.txt'),nrows = 1,stringsAsFactors = F) # includes IFB1
 colnames(TP_EXPESSION) = colnames(EXPESSION_sample_names)
 
 TP_EXPESSION = TP_EXPESSION[,which(colnames(TP_EXPESSION) %in% colnames(TP_GENOTYPE)),with=F]
@@ -285,7 +292,7 @@ nPC = incorporate.PC[,(colnames(incorporate.PC) == treatment)]
 
 if(t==1 & PC)
 {
-  expression.data = fread(paste0('/Users/isarnassiri/Documents//RESULTS_USED/Expression/Input_files_gene/expression_',treatment,'.txt'),stringsAsFactors = F) # includes IFB1
+  expression.data = fread(paste0('~/Input_files_gene/expression_',treatment,'.txt'),stringsAsFactors = F) # includes IFB1
   dim(expression.data)
   expression.data = expression.data[,which(colnames(expression.data) %in% colnames(TP_GENOTYPE_treatment)),with=F]
   
@@ -317,8 +324,6 @@ INPUT$genotype = factor(INPUT$genotype, levels = c(Allele_0,Allele_1,Allele_2))
 x <- paste("INPUT_",treatment, sep="") # INPUT_UT
 eval(call("<-", as.name(x), INPUT))
 
-# fwrite(INPUT, '/Users/isar.nassiri/Desktop/OAS1_Isoforms_expression_genotypes_IFNg_with_regressout.txt', quote = F, sep = '\t', row.names = T)
-
 #----------------- visualization
 
 #-----------
@@ -339,7 +344,6 @@ str(data)
 
 set.seed(123)
 
-library(ggplot2)
 graph<-ggplot(data, aes((snp), gene.x)) + geom_jitter(colour="grey35", position=position_jitter(width=0.175), alpha=0.7, size=2.8) + geom_boxplot(colour="grey15",fill="grey85",alpha=0.45,outlier.size=0) + facet_wrap(~treatment, nrow=1) + theme_bw() + ylab(paste0(gene.name.1, ' Expression'))+xlab(input$SNP_ID)+ ggtitle( paste0('gQTL: ', input$SNP_ID[t], ' & ', input$gene_name[t], ' (', input$gene_id[t], ')') )
 graph <- graph + theme(axis.text=element_text(size=25), axis.title=element_text(size=25), plot.title = element_text(size = 25 ), strip.text = element_text(size = 25, color = c("black"))) 
 
@@ -347,9 +351,9 @@ scientific_10 <- function(x, ...) {
   parse(text = gsub("e", "%*%10^", scales::label_scientific(...)(x)))
 }
 
-UT_FDR = fread('/Users/isarnassiri/Documents/Analysis_FairfaxLab/New_Analysis_eQTL_Monocyte/gQTL/QTLtools_outputs/UT_FDR_nominal.txt', nrows=1, skip=which(ut$phe_id == input$gene_name & ut$var_id == input$SNP_ID))
-LPS_FDR = fread('/Users/isarnassiri/Documents/Analysis_FairfaxLab/New_Analysis_eQTL_Monocyte/gQTL/QTLtools_outputs/LPS24_FDR_nominal.txt', nrows=1, skip=which(lps$phe_id == input$gene_name & lps$var_id == input$SNP_ID))
-IFN_FDR = fread("/Users/isarnassiri/Documents/Analysis_FairfaxLab/New_Analysis_eQTL_Monocyte/gQTL/QTLtools_outputs/IFN_FDR_nominal.txt", nrows=1, skip=which(ifn$phe_id == input$gene_name & ifn$var_id == input$SNP_ID))
+UT_FDR = fread('~/UT_FDR_nominal.txt', nrows=1, skip=which(ut$phe_id == input$gene_name & ut$var_id == input$SNP_ID))
+LPS_FDR = fread('~/LPS24_FDR_nominal.txt', nrows=1, skip=which(lps$phe_id == input$gene_name & lps$var_id == input$SNP_ID))
+IFN_FDR = fread("~/IFN_FDR_nominal.txt", nrows=1, skip=which(ifn$phe_id == input$gene_name & ifn$var_id == input$SNP_ID))
 
 dat_text <- data.frame(
   label = c( paste0('P: ', scientific_10(UT_FDR$V3, digits = 3)), paste0('P: ', scientific_10(LPS_FDR$V3, digits = 3)) , paste0('P: ', scientific_10(IFN_FDR$V3, digits = 3)) ),
@@ -384,7 +388,6 @@ for (i in stripr) {
   k <- k+1
 }
 
-library(grid)
 grid.draw(g)
 
 pdf(paste(input$SNP_ID[t], input$gene_id[t], input$gene_name[t],'.pdf',sep = '_'),width = 10, height = 8, useDingbats = F)
