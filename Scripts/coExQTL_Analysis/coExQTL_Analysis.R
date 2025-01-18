@@ -104,13 +104,13 @@ for(i in 1:dim(cis_sub)[1]) {
   design_matrix <- cbind(rep(c(1,0), c(dim(expr2)[2],dim(expr0)[2])), rep(c(0,1), c(dim(expr2)[2],dim(expr0)[2])))
   colnames(design_matrix) <- c("G2", "G0")
   INPUT = cbind(expr2, expr0)
-  ddcor_G2_G0 = ddcorAll(inputMat = INPUT, design = design_matrix,  compare = c("G2","G0"),  adjust = "fdr", nPerm = 0, corrType = "pearson", splitSet = QTL_temp$phe_id, sigThresh = 0.05, sortBy = "pValDiff_adj", verbose = TRUE)
+  ddcor_G2_G0 = ddcorAll(inputMat = INPUT, design = design_matrix,  compare = c("G2","G0"),  adjust = "fdr", nPerm = 0, splitSet = QTL_temp$phe_id, sigThresh = 0.05, sortBy = "pValDiff_adj", verbose = TRUE)
   
   design_matrix <- cbind(rep(c(1,0), c(dim(expr2)[2],dim(expr1)[2])), rep(c(0,1), c(dim(expr2)[2],dim(expr1)[2])))
   colnames(design_matrix) <- c("G2", "G1")
   INPUT = cbind(expr2, expr1)
   ddcor_G2_G1 = ddcorAll(inputMat = INPUT, design = design_matrix,  compare = c("G2","G1"),  
-             adjust = "fdr", nPerm = 0, corrType = "pearson", splitSet = QTL_temp$phe_id, sigThresh = 0.05, sortBy = "pValDiff_adj", verbose = TRUE)
+             adjust = "fdr", nPerm = 0, splitSet = QTL_temp$phe_id, sigThresh = 0.05, sortBy = "pValDiff_adj", verbose = TRUE)
   
   ddcor_G2_G0$index = 'G2_G0'
   ddcor_G2_G1$index = 'G2_G1'

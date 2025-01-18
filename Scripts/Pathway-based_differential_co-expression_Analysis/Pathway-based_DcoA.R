@@ -164,9 +164,9 @@ for (treatment in treatments) {
   INPUT = cbind(expr2, expr0)
   
   moduleDC_res_G2_G0 = moduleDC(inputMat = INPUT, design = design_matrix,
-                          compare = c("G2", "G0"), genes = pathways$values,
-                          labels = pathways$ind, nPerm = 1000, number_DC_genes = 10,
-                          dCorAvgMethod = "median")
+                                compare = c("G2", "G0"), genes = pathways$values,
+                                labels = pathways$ind, nPerm = 1000, number_DC_genes = 10,
+                                dCorAvgMethod = "median", corrType = "spearman")
   
   head(moduleDC_res_G2_G0)
   
@@ -177,9 +177,9 @@ for (treatment in treatments) {
   INPUT = cbind(expr2, expr1)
   
   moduleDC_res_G2_G1 = moduleDC(inputMat = INPUT, design = design_matrix,
-                          compare = c("G2", "G1"), genes = pathways$values,
-                          labels = pathways$ind, nPerm = 1000, number_DC_genes = 10,
-                          dCorAvgMethod = "median")
+                                compare = c("G2", "G1"), genes = pathways$values,
+                                labels = pathways$ind, nPerm = 1000, number_DC_genes = 10,
+                                dCorAvgMethod = "median", corrType = "spearman")
   
   head(moduleDC_res_G2_G1)
   
