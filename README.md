@@ -1,5 +1,6 @@
-# Supplementary data: Genetic determinants of monocyte splicing are enriched for disease susceptibility loci including for COVID-19
-In this repository you can find scripts, supplementary tables and data for the "Genetic determinants of monocyte splicing are enriched for disease susceptibility loci including for COVID-19" manuscript. Scripts used in the analysis and figure synthesis and supplementary tables are available online on shinyapps.io: 
-(https://livedataoxford.shinyapps.io/fairfaxlab_supplementary_files/).
+# Supplementary data: Genetic Determinants of Primary Human Monocytes Splicing Response to Metformin
 
-Citation: Nassiri I, Gilchrist J, Tong O, Lau E, Danielli S, Al Mossawi H, Neville M, Knight J, Fairfax B. Genetic determinants of monocyte splicing are enriched for disease susceptibility loci including for COVID-19. 2024 (https://www.researchsquare.com/article/rs-4660781/v1).
+In this repository you can find scripts, supplementary tables and data for the "Genetic Determinants of Primary Human Monocytes Splicing Response to Metformin" manuscript. Scripts used in the analysis and figure synthesis and supplementary tables are available online on shinyapps.io: 
+(https://livedataoxford.shinyapps.io/fairfaxlab_supplementary_files_MonocytesSplicingResponsetoMetformin/).
+
+Citation: Nassiri I, Gilchrist J, Tong O, Lau E, Danielli S, Al Mossawi H, Neville M, Knight J, Fairfax B. Genetic Determinants of Primary Human Monocytes Splicing Response to Metformin. 2025 (https://www.researchsquare.com/article/rs-4660781/v1).
